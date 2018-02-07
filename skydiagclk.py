@@ -104,6 +104,9 @@ def main(argv):
     columns = ['dateTime', 'issue','status','severity','from','assignee','assigned_company','delta_time','office_delta_time','delta_time_spent_in_company']
     df = pd.DataFrame(columns=columns)
     
+    summary_columns = ['issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec','total_office_delta_time_spent_in_skyline']
+    df_summary = pd.DataFrame(columns=summary_columns)
+    
 
     if url is None:
         url= 'https://issues.newtec.eu/'
@@ -140,6 +143,8 @@ def main(argv):
         row_index_in_issue = 0
         prev_dateTime = 0
         prev_company = "newtec"
+        total_office_delta_time_spent_in_newtec = 0
+        total_office_delta_time_spent_in_skyline = 0
         for j in range(nr_histories): # each element is a dict(ionary)        
             #print(rjson["issues"][i]["changelog"]["histories"][j]["created"])
             
@@ -168,6 +173,18 @@ def main(argv):
                         office_delta_time = office_time_between(prev_dateTime,dateTime)
                         print(delta_time)
                         print(office_delta_time)
+                        
+                        if prev_company=="skyline":
+                            if total_office_delta_time_spent_in_skyline==0:
+                                total_office_delta_time_spent_in_skyline = office_delta_time
+                            else:
+                                total_office_delta_time_spent_in_skyline = total_office_delta_time_spent_in_skyline + office_delta_time
+                        else:
+                            if total_office_delta_time_spent_in_newtec==0:
+                                total_office_delta_time_spent_in_newtec = office_delta_time
+                            else:
+                                total_office_delta_time_spent_in_newtec = total_office_delta_time_spent_in_newtec + office_delta_time
+                            
                     else:
                         delta_time = 0
                         office_delta_time = 0
@@ -196,9 +213,28 @@ def main(argv):
                         
                         
             df = df.append([row],ignore_index=True)
+            
+            if prev_company=="skyline":
+                if total_office_delta_time_spent_in_skyline==0:
+                    total_office_delta_time_spent_in_skyline = office_delta_time
+                else:
+                    total_office_delta_time_spent_in_skyline = total_office_delta_time_spent_in_skyline + office_delta_time
+            else:
+                if total_office_delta_time_spent_in_newtec==0:
+                    total_office_delta_time_spent_in_newtec = office_delta_time
+                else:
+                    total_office_delta_time_spent_in_newtec = total_office_delta_time_spent_in_newtec + office_delta_time
+                    
+        summary_row = pd.Series([str(issue_key),str(issue_status),
+                                 str(issue_severity),str(to_mail),str(assigned_company),
+                                 str(total_office_delta_time_spent_in_newtec),str(total_office_delta_time_spent_in_skyline)],summary_columns)
+        df_summary = df_summary.append([summary_row],ignore_index=True)
 
     print(df.head())  
-    df.to_csv('skydiagclk_report.csv')
+    df.to_csv('skydiagclk_detailed_report.csv')
+    
+    print(df_summary.head())
+    df_summary.to_csv('skydiagclk_summary.csv')
         
 
     
