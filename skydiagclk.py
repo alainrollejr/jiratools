@@ -20,7 +20,7 @@ def main(argv):
     change appropriately: 
     if assignee contains these keywords, the assigned company will be assumed to be skyline
     """
-    skyline_assignee_keywords = ["lodefier","skyline"]
+    skyline_assignee_keywords = ["lodefier","annys","cools","skyline"]
     
     parser = argparse.ArgumentParser(description='script to get start/stop clock data for SKYDIAG jira issues')
     
@@ -36,11 +36,10 @@ def main(argv):
     url = args['url']
     issue = args['issue']
     
-    # change appropriately
-    skyline_assignee_keywords = ["lodefier","skyline"]
+    
      
     # the dataframe column headers
-    columns = ['dateTime', 'issue','status','severity','assignee','assigned_company']
+    columns = ['dateTime', 'issue','status','severity','assignee','assigned_company','delta_time']
     df = pd.DataFrame(columns=columns)
     
 
@@ -75,14 +74,17 @@ def main(argv):
             nr_histories = int(rjson["issues"][i]["changelog"]["total"])
             print(nr_histories)
             
+            
+            row_index_in_issue = 0
+            prev_dateTime = 0
             for j in range(nr_histories): # each element is a dict(ionary)        
                 #print(rjson["issues"][i]["changelog"]["histories"][j]["created"])
-                dateTime = parse(rjson["issues"][i]["changelog"]["histories"][j]["created"])
                 
+                dateTime = parse(rjson["issues"][i]["changelog"]["histories"][j]["created"])
                 
                 if rjson["issues"][i]["changelog"]["histories"][j]["items"][0]["field"]=="assignee":            
                     to_mail = rjson["issues"][i]["changelog"]["histories"][j]["items"][0]["to"]
-                    to_string = rjson["issues"][i]["changelog"]["histories"][j]["items"][0]["toString"]
+                    
                     print(dateTime)
                     #print(type(dateTime))
                     print(to_mail)
@@ -90,18 +92,32 @@ def main(argv):
                     if to_mail is None:
                         print('to: null')
                     else:
-                        assigned_company = "newtec"
+                        # it is an assign action, with filled in 'to' field
+                        assigned_company = "newtec" #default assumption
                         for key in skyline_assignee_keywords:
                             if key in to_mail:
                                 assigned_company = "skyline"
                         print(assigned_company)
+                        
+                        if row_index_in_issue > 0:
+                            delta_time = dateTime - prev_dateTime
+                            print(delta_time)
+                        else:
+                            delta_time = 0
+                        prev_dateTime = dateTime
+                            
+                        
                                 
                         row=pd.Series([str(dateTime),str(issue_key),str(issue_status),
-                                       str(issue_severity),str(to_mail),str(assigned_company)],columns)        
+                                       str(issue_severity),str(to_mail),str(assigned_company),
+                                       str(delta_time)],columns)        
                         
                         
                         df = df.append([row],ignore_index=True)
+                        row_index_in_issue = row_index_in_issue +1
+            
     else:
+        # only one issue 
         urlstr = url + 'rest/api/2/issue/'+str(issue)+'?expand=changelog' 
         print(urlstr)        
         r = requests.get(urlstr, auth=(user, password))    
