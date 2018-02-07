@@ -15,6 +15,7 @@ from dateutil.parser import parse
 
 from datetime import datetime
 from datetime import timedelta
+import pytz
 
 def adjust_hour_delta(t, start, stop):
 
@@ -182,6 +183,19 @@ def main(argv):
                     df = df.append([row],ignore_index=True)
                     row_index_in_issue = row_index_in_issue +1
                     prev_company = assigned_company
+                    
+        # for still ongoing tickets add a final row that has the date set to "now"
+        if issue_status=="Open" or issue_status=="In Progress" or issue_status=="Accepted":
+            now = datetime.now(pytz.utc)
+            delta_time = now - prev_dateTime
+            office_delta_time = office_time_between(prev_dateTime,now)
+            
+            row=pd.Series([str(now),str(issue_key),str(issue_status),
+                           str(issue_severity),"dummy",str(to_mail),str(assigned_company),
+                           str(delta_time),str(office_delta_time),prev_company],columns)        
+                        
+                        
+            df = df.append([row],ignore_index=True)
 
     print(df.head())  
     df.to_csv('skydiagclk_report.csv')
