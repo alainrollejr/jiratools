@@ -156,9 +156,11 @@ def main(argv):
                 
                 print(dateTime)
                 #print(type(dateTime))
-                print(to_mail)
+                print(to_mail)               
+               
                 
                 if to_mail is None:
+                    # can be still none
                     print('to: null')
                 else:
                     # it is an assign action, with filled in 'to' field
@@ -206,29 +208,30 @@ def main(argv):
                     
         # for still ongoing tickets add a final row that has the date set to "now"
         if issue_status=="Open" or issue_status=="In Progress" or issue_status=="Accepted":
-            now = datetime.now(pytz.utc)
-            delta_time = now - prev_dateTime
-            office_delta_time = office_time_between(prev_dateTime,now)
-            hours, remainder = divmod(office_delta_time.total_seconds(), 3600)
-            
-            
-            row=pd.Series([str(now),str(issue_key),str(issue_status),
-                           str(issue_severity),"dummy",str(to_mail),str(assigned_company),
-                           str(delta_time),hours,prev_company],columns)        
-                        
-                        
-            df = df.append([row],ignore_index=True)
-            
-            if prev_company=="skyline":
-                if total_office_delta_time_spent_in_skyline==0:
-                    total_office_delta_time_spent_in_skyline = office_delta_time
+            if row_index_in_issue > 0:                
+                now = datetime.now(pytz.utc)
+                delta_time = now - prev_dateTime
+                office_delta_time = office_time_between(prev_dateTime,now)
+                hours, remainder = divmod(office_delta_time.total_seconds(), 3600)
+                
+                
+                row=pd.Series([str(now),str(issue_key),str(issue_status),
+                               str(issue_severity),"dummy",str(to_mail),str(assigned_company),
+                               str(delta_time),hours,prev_company],columns)        
+                            
+                            
+                df = df.append([row],ignore_index=True)
+                
+                if prev_company=="skyline":
+                    if total_office_delta_time_spent_in_skyline==0:
+                        total_office_delta_time_spent_in_skyline = office_delta_time
+                    else:
+                        total_office_delta_time_spent_in_skyline = total_office_delta_time_spent_in_skyline + office_delta_time
                 else:
-                    total_office_delta_time_spent_in_skyline = total_office_delta_time_spent_in_skyline + office_delta_time
-            else:
-                if total_office_delta_time_spent_in_newtec==0:
-                    total_office_delta_time_spent_in_newtec = office_delta_time
-                else:
-                    total_office_delta_time_spent_in_newtec = total_office_delta_time_spent_in_newtec + office_delta_time
+                    if total_office_delta_time_spent_in_newtec==0:
+                        total_office_delta_time_spent_in_newtec = office_delta_time
+                    else:
+                        total_office_delta_time_spent_in_newtec = total_office_delta_time_spent_in_newtec + office_delta_time
         
         if  total_office_delta_time_spent_in_newtec==0:
             newtec_hours = 0
