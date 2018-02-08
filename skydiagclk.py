@@ -104,7 +104,9 @@ def main(argv):
     columns = ['dateTime','summary','issue','status','severity','from','assignee','assigned_company','delta_calendar_time','office_delta_time(h)','delta_time_spent_in_company']
     df = pd.DataFrame(columns=columns)
     
-    summary_columns = ['summary','issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec(h)','total_office_delta_time_spent_in_skyline(h)']
+    summary_columns = ['summary','issue','status','severity','current_assignee',
+                       'current_assigned_company','office_hours_spent_newtec',
+                       'office_hours_spent_skyline','created','last_updated']
     df_summary = pd.DataFrame(columns=summary_columns)
     
 
@@ -132,6 +134,8 @@ def main(argv):
         print(issue_status)
     
         issue_summary = rjson["issues"][i]["fields"]["summary"]
+        issue_created = parse(rjson["issues"][i]["fields"]["created"])
+        issue_updated = parse(rjson["issues"][i]["fields"]["updated"])
         
         issue_severity = rjson["issues"][i]["fields"]["customfield_10072"]["value"]
         print(issue_severity)
@@ -245,7 +249,7 @@ def main(argv):
                     
         summary_row = pd.Series([issue_summary,str(issue_key),str(issue_status),
                                  str(issue_severity),str(to_mail),str(assigned_company),
-                                 newtec_hours,skyline_hours],summary_columns)
+                                 newtec_hours,skyline_hours,str(issue_created),str(issue_updated)],summary_columns)
         df_summary = df_summary.append([summary_row],ignore_index=True)
 
     print(df.head())  
