@@ -51,7 +51,7 @@ def office_time_between(a, b, start = timedelta(hours = 8),
     zero = timedelta(0)
     assert(zero <= start <= stop <= timedelta(1))
     office_day = stop - start
-    working_days = full_in_between_working_days(a, b)
+    working_days = full_in_between_working_days(a, b)    
 
     total = office_day * working_days
     # Calculate the time adusted deltas for the the start and end days
@@ -101,10 +101,10 @@ def main(argv):
     
      
     # the dataframe column headers
-    columns = ['dateTime', 'issue','status','severity','from','assignee','assigned_company','delta_time','office_delta_time','delta_time_spent_in_company']
+    columns = ['dateTime', 'issue','status','severity','from','assignee','assigned_company','delta_calendar_time','office_delta_time(h)','delta_time_spent_in_company']
     df = pd.DataFrame(columns=columns)
     
-    summary_columns = ['issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec','total_office_delta_time_spent_in_skyline']
+    summary_columns = ['issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec(h)','total_office_delta_time_spent_in_skyline(h)']
     df_summary = pd.DataFrame(columns=summary_columns)
     
 
@@ -114,7 +114,7 @@ def main(argv):
     
     # query all SKYDIAG issues
     # use maxResult=-1 to get all issues
-    urlstr = url + 'rest/api/2/search?jql=project="SKYDIAG"&expand=changelog&maxResults=100'
+    urlstr = url + 'rest/api/2/search?jql=project="SKYDIAG"&expand=changelog&maxResults=-1'
     print(urlstr)
     r = requests.get(urlstr, auth=(user, password))    
     rjson = r.json()  
@@ -173,6 +173,7 @@ def main(argv):
                         office_delta_time = office_time_between(prev_dateTime,dateTime)
                         print(delta_time)
                         print(office_delta_time)
+                        hours, remainder = divmod(office_delta_time.total_seconds(), 3600)
                         
                         if prev_company=="skyline":
                             if total_office_delta_time_spent_in_skyline==0:
@@ -188,13 +189,15 @@ def main(argv):
                     else:
                         delta_time = 0
                         office_delta_time = 0
+                        hours = 0
+                        
                     prev_dateTime = dateTime
                         
                     
                             
                     row=pd.Series([str(dateTime),str(issue_key),str(issue_status),
                                    str(issue_severity),str(from_str),str(to_mail),str(assigned_company),
-                                   str(delta_time),str(office_delta_time),prev_company],columns)        
+                                   str(delta_time),hours,prev_company],columns)        
                     
                     
                     df = df.append([row],ignore_index=True)
@@ -206,10 +209,12 @@ def main(argv):
             now = datetime.now(pytz.utc)
             delta_time = now - prev_dateTime
             office_delta_time = office_time_between(prev_dateTime,now)
+            hours, remainder = divmod(office_delta_time.total_seconds(), 3600)
+            
             
             row=pd.Series([str(now),str(issue_key),str(issue_status),
                            str(issue_severity),"dummy",str(to_mail),str(assigned_company),
-                           str(delta_time),str(office_delta_time),prev_company],columns)        
+                           str(delta_time),hours,prev_company],columns)        
                         
                         
             df = df.append([row],ignore_index=True)
@@ -224,10 +229,20 @@ def main(argv):
                     total_office_delta_time_spent_in_newtec = office_delta_time
                 else:
                     total_office_delta_time_spent_in_newtec = total_office_delta_time_spent_in_newtec + office_delta_time
+        
+        if  total_office_delta_time_spent_in_newtec==0:
+            newtec_hours = 0
+        else:
+            newtec_hours, remainder = divmod(total_office_delta_time_spent_in_newtec.total_seconds(), 3600)
+            
+        if  total_office_delta_time_spent_in_skyline==0:
+            skyline_hours = 0
+        else:            
+            skyline_hours, remainder = divmod(total_office_delta_time_spent_in_skyline.total_seconds(), 3600)
                     
         summary_row = pd.Series([str(issue_key),str(issue_status),
                                  str(issue_severity),str(to_mail),str(assigned_company),
-                                 str(total_office_delta_time_spent_in_newtec),str(total_office_delta_time_spent_in_skyline)],summary_columns)
+                                 newtec_hours,skyline_hours],summary_columns)
         df_summary = df_summary.append([summary_row],ignore_index=True)
 
     print(df.head())  
