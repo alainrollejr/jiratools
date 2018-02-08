@@ -101,10 +101,10 @@ def main(argv):
     
      
     # the dataframe column headers
-    columns = ['dateTime', 'issue','status','severity','from','assignee','assigned_company','delta_calendar_time','office_delta_time(h)','delta_time_spent_in_company']
+    columns = ['dateTime','summary','issue','status','severity','from','assignee','assigned_company','delta_calendar_time','office_delta_time(h)','delta_time_spent_in_company']
     df = pd.DataFrame(columns=columns)
     
-    summary_columns = ['issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec(h)','total_office_delta_time_spent_in_skyline(h)']
+    summary_columns = ['summary','issue','status','severity','current_assignee','current_assigned_company','total_office_delta_time_spent_in_newtec(h)','total_office_delta_time_spent_in_skyline(h)']
     df_summary = pd.DataFrame(columns=summary_columns)
     
 
@@ -131,7 +131,7 @@ def main(argv):
         issue_status = rjson["issues"][i]["fields"]["status"]["name"]
         print(issue_status)
     
-        
+        issue_summary = rjson["issues"][i]["fields"]["summary"]
         
         issue_severity = rjson["issues"][i]["fields"]["customfield_10072"]["value"]
         print(issue_severity)
@@ -197,7 +197,7 @@ def main(argv):
                         
                     
                             
-                    row=pd.Series([str(dateTime),str(issue_key),str(issue_status),
+                    row=pd.Series([str(dateTime),issue_summary,str(issue_key),str(issue_status),
                                    str(issue_severity),str(from_str),str(to_mail),str(assigned_company),
                                    str(delta_time),hours,prev_company],columns)        
                     
@@ -215,7 +215,7 @@ def main(argv):
                 hours, remainder = divmod(office_delta_time.total_seconds(), 3600)
                 
                 
-                row=pd.Series([str(now),str(issue_key),str(issue_status),
+                row=pd.Series([str(now),issue_summary,str(issue_key),str(issue_status),
                                str(issue_severity),"dummy",str(to_mail),str(assigned_company),
                                str(delta_time),hours,prev_company],columns)        
                             
@@ -243,7 +243,7 @@ def main(argv):
         else:            
             skyline_hours, remainder = divmod(total_office_delta_time_spent_in_skyline.total_seconds(), 3600)
                     
-        summary_row = pd.Series([str(issue_key),str(issue_status),
+        summary_row = pd.Series([issue_summary,str(issue_key),str(issue_status),
                                  str(issue_severity),str(to_mail),str(assigned_company),
                                  newtec_hours,skyline_hours],summary_columns)
         df_summary = df_summary.append([summary_row],ignore_index=True)
